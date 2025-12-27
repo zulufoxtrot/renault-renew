@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  scraper:
+    # Use pre-built image from GitHub Container Registry
+    # Replace YOUR_USERNAME/YOUR_REPO with your actual GitHub username and repository name
+    image: ghcr.io/zulufoxtrot/renault-renew:latest
+    
+    container_name: renault-scraper
+    volumes:
+      # Mount output directory to persist CSV files and reports
+      - ./output:/app/output
+      # Mount database file to persist data
+      - ./data:/app/data
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    # Uncomment to run on a schedule (requires cron setup or external scheduler)
+    # command: sh -c "while true; do python scraper_table.py; sleep 3600; done"
