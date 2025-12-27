@@ -10,9 +10,7 @@ ENV/
 *.egg-info/
 
 # Data files
-*.csv
 *.db
-*.html
 output/
 data/
 
