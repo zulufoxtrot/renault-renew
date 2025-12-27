@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Renault Mégane E-Tech - Vehicle Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .stat-box {
+            text-align: center;
+            padding: 15px;
+        }
+        
+        .stat-box .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-box .label {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            padding: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+        }
+        
+        th {
+            background: #2c3e50;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        th:hover {
+            background: #34495e;
+        }
+        
+        th.sort-asc::after {
+            content: " ▲";
+            font-size: 0.8em;
+        }
+        
+        th.sort-desc::after {
+            content: " ▼";
+            font-size: 0.8em;
+        }
+        
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        tr:hover {
+            background-color: #f8f9fa !important;
+        }
+        
+        .photo-cell {
+            width: 150px;
+            text-align: center;
+        }
+        
+        .photo-cell img {
+            max-width: 150px;
+            max-height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .photo-link {
+            display: inline-block;
+            position: relative;
+        }
+        
+        .photo-link:hover img {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .photo-link:hover .no-photo {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .no-photo {
+            width: 150px;
+            height: 100px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 0.85em;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .relative-date {
+            font-weight: 600;
+            color: #667eea;
+        }
+        
+        .absolute-date {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        
+        .price-cell {
+            font-size: 1.1em;
+        }
+        
+        .packs-cell {
+            max-width: 250px;
+            font-size: 0.85em;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 0.75em;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+        
+        .badge-new {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-price-down {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-price-up {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .color-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+        
+        .price-history {
+            font-size: 0.8em;
+            color: #6c757d;
+        }
+        
+        .price-history-item {
+            white-space: nowrap;
+        }
+        
+        a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Renault Mégane E-Tech</h1>
+            <div class="subtitle">Iconic | Optimum Charge | €19k-25k</div>
+            <div class="subtitle">Generated: 2025-12-27 14:23:14</div>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="number">10</div>
+                <div class="label">Total Vehicles</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">6</div>
+                <div class="label">Available Now</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">6</div>
+                <div class="label">New (24h)</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">10</div>
+                <div class="label">Price Tracked</div>
+            </div>
+        </div>
+        
+        <div class="table-container">
+            <table id="vehicleTable">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable(0)">Photo</th>
+                        <th onclick="sortTable(1)">Current Price</th>
+                        <th onclick="sortTable(2)">Original Price</th>
+                        <th onclick="sortTable(3)">Trim</th>
+                        <th onclick="sortTable(4)">Charge</th>
+                        <th onclick="sortTable(5)">Color</th>
+                        <th onclick="sortTable(6)">Seats</th>
+                        <th onclick="sortTable(7)">Packs</th>
+                        <th onclick="sortTable(8)">Location</th>
+                        <th onclick="sortTable(9)">First Seen</th>
+                        <th onclick="sortTable(10)">Last Seen</th>
+                        <th onclick="sortTable(11)">Price History</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+            <tr style="background-color: #d4edda;">
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_00000021_231139" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/c05b0fc0-f1c4-8eb9-5e29-6bd000649303/tempfile1254769886219759347_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                 <span class="badge badge-new">NEW</span></td>
+                <td class="price-cell" data-sort="24799"><strong>24,799€</strong></td>
+                <td data-sort="24799">24,799€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #0066CC;">Bleu</span></td>
+                <td>unsure</td>
+                <td class="packs-cell">Pack Augmented Vision & Advanced Driving Assist</td>
+                <td>Grasse - Rrg</td>
+                <td data-sort="2025-12-26T19:31:24.817084"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:31</span></td>
+                <td data-sort="2025-12-27T14:23:11.164514"><span class="relative-date">0 min ago</span><br><span class="absolute-date">2025-12-27 14:23</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr style="background-color: #d4edda;">
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_00000584_VO635796" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/c24fbc28-8bf1-d731-5924-198979c8845a/tempfile12549255531944675612_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                 <span class="badge badge-new">NEW</span></td>
+                <td class="price-cell" data-sort="24490"><strong>24,490€</strong></td>
+                <td data-sort="24490">24,490€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #FFFFFF;">Blanc</span></td>
+                <td>unsure</td>
+                <td class="packs-cell">Pack Augmented Vision & Advanced Driving Assist</td>
+                <td>Oyonnax - Deffeuille Auto</td>
+                <td data-sort="2025-12-26T19:31:17.995630"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:31</span></td>
+                <td data-sort="2025-12-27T14:23:09.181178"><span class="relative-date">0 min ago</span><br><span class="absolute-date">2025-12-27 14:23</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr style="background-color: #d4edda;">
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_00001190_VO054038" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/892bf644-920d-1438-a46b-5e36c2a387d6/25000001190vo05403801_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                 <span class="badge badge-new">NEW</span></td>
+                <td class="price-cell" data-sort="24990"><strong>24,990€</strong></td>
+                <td data-sort="24990">24,990€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #808080;">Gris</span></td>
+                <td>cuir blanc</td>
+                <td class="packs-cell">Pack Augmented Vision & Advanced Driving Assist</td>
+                <td>Montargis</td>
+                <td data-sort="2025-12-27T14:01:31.670936"><span class="relative-date">21 min ago</span><br><span class="absolute-date">2025-12-27 14:01</span></td>
+                <td data-sort="2025-12-27T14:23:07.230726"><span class="relative-date">0 min ago</span><br><span class="absolute-date">2025-12-27 14:23</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr style="background-color: #d4edda;">
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_00000179_122554" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/6bb07c27-248b-a4ab-f5cd-432498a90121/tempfile4544115516203974374_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                 <span class="badge badge-new">NEW</span></td>
+                <td class="price-cell" data-sort="24990"><strong>24,990€</strong></td>
+                <td data-sort="24990">24,990€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #0066CC;">Bleu</span></td>
+                <td>cuir blanc</td>
+                <td class="packs-cell">Pack Augmented Vision & Advanced Driving Assist</td>
+                <td>Pessac - Rrg</td>
+                <td data-sort="2025-12-27T14:01:36.282256"><span class="relative-date">21 min ago</span><br><span class="absolute-date">2025-12-27 14:01</span></td>
+                <td data-sort="2025-12-27T14:23:06.020563"><span class="relative-date">0 min ago</span><br><span class="absolute-date">2025-12-27 14:23</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr style="background-color: #d4edda;">
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_00001327_VO109625" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/d7c02338-9f8a-4bf3-9a24-bffa6a9e3aeb/25000001327vo10962501_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge Iconic" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                 <span class="badge badge-new">NEW</span></td>
+                <td class="price-cell" data-sort="24900"><strong>24,900€</strong></td>
+                <td data-sort="24900">24,900€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #FFFFFF;">Blanc</span></td>
+                <td>cuir blanc</td>
+                <td class="packs-cell">Pack Augmented Vision & Advanced Driving Assist</td>
+                <td>Provins</td>
+                <td data-sort="2025-12-26T19:31:11.921386"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:31</span></td>
+                <td data-sort="2025-12-27T14:22:57.356643"><span class="relative-date">0 min ago</span><br><span class="absolute-date">2025-12-27 14:22</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr style="background-color: #d4edda;">
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_00000026_462679" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/49039f4c-8fdb-c0c8-469c-24414b7f2079/tempfile17746730704324862224_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                 <span class="badge badge-new">NEW</span></td>
+                <td class="price-cell" data-sort="22499"><strong>22,499€</strong></td>
+                <td data-sort="22499">22,499€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #0066CC;">Bleu</span></td>
+                <td>cuir blanc</td>
+                <td class="packs-cell">None</td>
+                <td>Nice Menton-Cagnes Sur Mer - Rrg</td>
+                <td data-sort="2025-12-26T19:31:07.779726"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:31</span></td>
+                <td data-sort="2025-12-27T14:22:51.248703"><span class="relative-date">0 min ago</span><br><span class="absolute-date">2025-12-27 14:22</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr >
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_00001161_VO034562" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/36eb045c-f4c8-340a-a6a0-a3d332029ebe/tempfile11143885105563512055_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                </td>
+                <td class="price-cell" data-sort="23950"><strong>23,950€</strong></td>
+                <td data-sort="23950">23,950€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #FFFFFF;">Blanc</span></td>
+                <td>cuir blanc</td>
+                <td class="packs-cell">None</td>
+                <td>Chartres</td>
+                <td data-sort="2025-12-27T14:01:28.481502"><span class="relative-date">21 min ago</span><br><span class="absolute-date">2025-12-27 14:01</span></td>
+                <td data-sort="2025-12-27T14:01:28.481502"><span class="relative-date">21 min ago</span><br><span class="absolute-date">2025-12-27 14:01</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr >
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_00001151_VO024414" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles/b2e634db-0f29-0083-6505-0fa2fda397d3/tempfile11866579340500571630_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                </td>
+                <td class="price-cell" data-sort="23980"><strong>23,980€</strong></td>
+                <td data-sort="23980">23,980€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #0066CC;">Bleu</span></td>
+                <td>unsure</td>
+                <td class="packs-cell">None</td>
+                <td>Orleans</td>
+                <td data-sort="2025-12-26T19:31:28.079221"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:31</span></td>
+                <td data-sort="2025-12-27T14:01:26.364341"><span class="relative-date">21 min ago</span><br><span class="absolute-date">2025-12-27 14:01</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr >
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_25003747_VO451480" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/b7dbc09f-f923-d7bc-b8e0-2188600668b1/tempfile3116916168652431716_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                </td>
+                <td class="price-cell" data-sort="24490"><strong>24,490€</strong></td>
+                <td data-sort="24490">24,490€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #808080;">Gris</span></td>
+                <td>unsure</td>
+                <td class="packs-cell">None</td>
+                <td>Villefranche De Rouergue - Groupe Bony</td>
+                <td data-sort="2025-12-26T19:31:16.951952"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:31</span></td>
+                <td data-sort="2025-12-26T19:40:35.369081"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:40</span></td>
+                <td>—</td>
+            </tr>
+            
+            <tr >
+                <td class="photo-cell">
+                <a href="https://fr.renew.auto/achat-vehicules-occasions/details.html?productId=VEH_25003623_7689" target="_blank" class="photo-link">
+                    <img src="https://mediarepository-wired-prod-1-euw1.wrd-aws.com/uci-v2/vehicles-assets/9804edfe-2bfc-bb5d-de3f-c8c1aa9ae5a3/tempfile289703081471033322_small.jpg" 
+                         alt="RENAULT MEGANE E-TECH ELECTRIQUEIconic - Megane E-Tech EV60 220 ch optimum charge" 
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22150%22 height=%22100%22%3E%3Crect fill=%22%23ddd%22 width=%22150%22 height=%22100%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 text-anchor=%22middle%22 dy=%22.3em%22 fill=%22%23999%22%3ENo Image%3C/text%3E%3C/svg%3E';">
+                </a>
+                </td>
+                <td class="price-cell" data-sort="24990"><strong>24,990€</strong></td>
+                <td data-sort="24990">24,990€</td>
+                <td>Iconic</td>
+                <td>Optimum Charge</td>
+                <td><span class="color-badge" style="background-color: #808080;">Gris</span></td>
+                <td>unsure</td>
+                <td class="packs-cell">Pack Advanced Driving Assist</td>
+                <td>Lyon Ouest Saint Genis - Rrg</td>
+                <td data-sort="2025-12-26T19:31:11.030644"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:31</span></td>
+                <td data-sort="2025-12-26T19:40:27.967802"><span class="relative-date">18h ago</span><br><span class="absolute-date">2025-12-26 19:40</span></td>
+                <td>—</td>
+            </tr>
+            
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer">
+            Generated by Renault Scraper v15 | Database: renault_vehicles.db<br>
+            Click column headers to sort
+        </div>
+    </div>
+    
+    <script>
+        let currentSort = { column: -1, ascending: true };
+        
+        function sortTable(columnIndex) {
+            const table = document.getElementById('vehicleTable');
+            const tbody = table.tBodies[0];
+            const rows = Array.from(tbody.rows);
+            const headers = table.tHead.rows[0].cells;
+            
+            // Toggle sort direction
+            if (currentSort.column === columnIndex) {
+                currentSort.ascending = !currentSort.ascending;
+            } else {
+                currentSort.column = columnIndex;
+                currentSort.ascending = true;
+            }
+            
+            // Remove sort indicators from all headers
+            for (let header of headers) {
+                header.classList.remove('sort-asc', 'sort-desc');
+            }
+            
+            // Add sort indicator to current header
+            headers[columnIndex].classList.add(currentSort.ascending ? 'sort-asc' : 'sort-desc');
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aCell = a.cells[columnIndex];
+                let bCell = b.cells[columnIndex];
+                
+                // Use data-sort attribute if available
+                let aValue = aCell.getAttribute('data-sort') || aCell.textContent.trim();
+                let bValue = bCell.getAttribute('data-sort') || bCell.textContent.trim();
+                
+                // Try date comparison (ISO format detection)
+                if (aValue.match(/^\d{4}-\d{2}-\d{2}T/) && bValue.match(/^\d{4}-\d{2}-\d{2}T/)) {
+                    let aDate = new Date(aValue);
+                    let bDate = new Date(bValue);
+                    return currentSort.ascending ? aDate - bDate : bDate - aDate;
+                }
+                
+                // Try numeric comparison
+                let aNum = parseFloat(aValue.replace(/[^0-9.-]/g, ''));
+                let bNum = parseFloat(bValue.replace(/[^0-9.-]/g, ''));
+                
+                if (!isNaN(aNum) && !isNaN(bNum)) {
+                    return currentSort.ascending ? aNum - bNum : bNum - aNum;
+                }
+                
+                // Fall back to string comparison
+                return currentSort.ascending 
+                    ? aValue.localeCompare(bValue)
+                    : bValue.localeCompare(aValue);
+            });
+            
+            // Reorder rows in the table
+            rows.forEach(row => tbody.appendChild(row));
+        }
+        
+        // Sort by "Last Seen" descending by default on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            // Set initial sort state to descending for Last Seen
+            currentSort.column = 10;
+            currentSort.ascending = false;
+            sortTable(10); // Last Seen column
+        });
+    </script>
+</body>
+</html>
