@@ -2,10 +2,11 @@ version: '3.8'
 
 services:
   scraper:
-    # Use pre-built image from GitHub Container Registry
-    # Replace YOUR_USERNAME/YOUR_REPO with your actual GitHub username and repository name
-    image: ghcr.io/zulufoxtrot/renault-renew:latest
-    
+    # Build locally
+    build:
+      context: .
+      dockerfile: Dockerfile
+
     container_name: renault-scraper
     ports:
       - "5000:5000"
