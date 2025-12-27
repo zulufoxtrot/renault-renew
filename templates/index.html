@@ -636,11 +636,11 @@
             return html;
         }
         
-        async function renderVehicles(vehicles, stats) {
+        function renderVehicles(vehicles, stats) {
             vehiclesData = vehicles;
             
-            // Update map (now async)
-            await updateMap(vehicles);
+            // Update map
+            updateMap(vehicles);
 
             // Update stats
             document.getElementById('statTotal').textContent = stats.total_vehicles;
@@ -706,7 +706,7 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    await renderVehicles(data.vehicles, data.stats);
+                    renderVehicles(data.vehicles, data.stats);
                     const timestamp = new Date(data.timestamp).toLocaleString();
                     document.getElementById('lastUpdated').textContent = `Last updated: ${timestamp}`;
                 } else {
@@ -860,45 +860,15 @@
             autoRefreshInterval = setInterval(loadVehicles, 30000);
         }
         
-        // Geocoding cache for French locations
-        const cityCoordinates = {};
-
-        // API-based geocoding using French government's official geocoding service
-        // https://api-adresse.data.gouv.fr (free, no API key required)
-        async function geocodeLocation(location) {
-            const cityName = location.toLowerCase().trim();
-
-            // Check cache first
-            if (cityCoordinates[cityName]) {
-                return cityCoordinates[cityName];
+        function getVehicleCoordinates(vehicle) {
+            // Use coordinates from database if available
+            if (vehicle.latitude && vehicle.longitude) {
+                return [vehicle.latitude, vehicle.longitude];
             }
 
-            try {
-                // Query French government geocoding API
-                const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(location)}&type=municipality&limit=1`);
-                const data = await response.json();
-
-                if (data.features && data.features.length > 0) {
-                    const coords = data.features[0].geometry.coordinates;
-                    // API returns [longitude, latitude], we need [latitude, longitude]
-                    const latLng = [coords[1], coords[0]];
-
-                    // Cache the result
-                    cityCoordinates[cityName] = latLng;
-                    return latLng;
-                }
-            } catch (error) {
-                console.warn(`Failed to geocode ${location}:`, error);
-            }
-
-            // Default to center of France if geocoding fails
-            const defaultCoords = [46.2276, 2.2137];
-            cityCoordinates[cityName] = defaultCoords;
-            return defaultCoords;
-        }
-
-        async function getCityCoordinates(location) {
-            return await geocodeLocation(location);
+            // Fallback to center of France if no coordinates
+            console.warn(`No coordinates for vehicle at ${vehicle.location}`);
+            return [46.2276, 2.2137];
         }
 
         function initMap() {
@@ -912,7 +882,7 @@
             }).addTo(map);
         }
 
-        async function updateMap(vehicles) {
+                function updateMap(vehicles) {
             if (!map) return;
 
             // Clear existing markers
@@ -920,9 +890,9 @@
             markers = {};
             markerClusterData = {};
 
-            // Group vehicles by location (geocode async)
-            const locationPromises = vehicles.map(async vehicle => {
-                const coords = await getCityCoordinates(vehicle.location);
+            // Group vehicles by location using database coordinates
+            vehicles.forEach(vehicle => {
+                const coords = getVehicleCoordinates(vehicle);
                 const key = coords.join(',');
 
                 if (!markerClusterData[key]) {
@@ -934,9 +904,6 @@
                 }
                 markerClusterData[key].vehicles.push(vehicle);
             });
-
-            // Wait for all geocoding to complete
-            await Promise.all(locationPromises);
 
             // Create markers for each location
             Object.entries(markerClusterData).forEach(([key, data]) => {
@@ -1023,9 +990,9 @@
         }
 
         // Initial load
-        window.addEventListener('DOMContentLoaded', async () => {
+        window.addEventListener('DOMContentLoaded', () => {
             initMap();
-            await loadVehicles();
+            loadVehicles();
             startAutoRefresh();
             
             // Sort by Last Seen descending

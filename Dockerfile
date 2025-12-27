@@ -18,6 +18,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY *.py .
 COPY templates/ templates/
+COPY entrypoint.sh .
+
+# Make entrypoint executable
+RUN chmod +x entrypoint.sh
 
 # Create directory for output files and data with proper permissions
 RUN mkdir -p /app/output /app/data && \
@@ -30,5 +34,5 @@ ENV PORT=5000
 # Expose port
 EXPOSE 5000
 
-# Run the Flask API
-CMD ["python", "app.py"]
+# Run the Flask API via entrypoint
+ENTRYPOINT ["./entrypoint.sh"]

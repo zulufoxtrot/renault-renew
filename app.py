@@ -99,6 +99,8 @@ def get_vehicles():
                 'packs': v.packs,
                 'location': v.location,
                 'photo_url': v.photo_url,
+                'latitude': v.latitude,
+                'longitude': v.longitude,
                 'first_seen': v.first_seen,
                 'last_seen': v.last_seen,
                 'is_new': v.is_new

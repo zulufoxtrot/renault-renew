@@ -24,6 +24,8 @@ class VehicleRecord:
     packs: str
     location: str
     photo_url: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     first_seen: Optional[str] = None
     last_seen: Optional[str] = None
     original_price: Optional[int] = None
@@ -60,11 +62,16 @@ class Database:
                 packs TEXT,
                 location TEXT,
                 photo_url TEXT,
+                latitude REAL,
+                longitude REAL,
                 first_seen TIMESTAMP NOT NULL,
                 last_seen TIMESTAMP NOT NULL,
                 is_available BOOLEAN DEFAULT 1
             )
         """)
+
+        # Run migrations for existing databases
+        self._run_migrations(cursor)
 
         # Price history table - track price changes
         cursor.execute("""
@@ -91,6 +98,29 @@ class Database:
         self.conn.commit()
         print(f"✅ Database initialized: {self.db_path}")
 
+    def _run_migrations(self, cursor):
+        """Run database migrations for schema updates"""
+        # Check current schema
+        cursor.execute("PRAGMA table_info(vehicles)")
+        columns = {column[1] for column in cursor.fetchall()}
+
+        migrations_applied = False
+
+        # Migration 1: Add latitude and longitude columns
+        if 'latitude' not in columns:
+            print("   🔄 Migration: Adding 'latitude' column...")
+            cursor.execute("ALTER TABLE vehicles ADD COLUMN latitude REAL")
+            migrations_applied = True
+
+        if 'longitude' not in columns:
+            print("   🔄 Migration: Adding 'longitude' column...")
+            cursor.execute("ALTER TABLE vehicles ADD COLUMN longitude REAL")
+            migrations_applied = True
+
+        if migrations_applied:
+            print("   ✅ Database migrations completed")
+            self.conn.commit()
+
     def add_or_update_vehicle(self, vehicle_data: Dict) -> Tuple[bool, bool]:
         """
         Add or update a vehicle in the database
@@ -113,8 +143,8 @@ class Database:
                 INSERT INTO vehicles (
                     url, title, current_price, original_price, trim, charge_type,
                     exterior_color, seat_type, packs, location, photo_url,
-                    first_seen, last_seen, is_available
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    latitude, longitude, first_seen, last_seen, is_available
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
             """, (
                 vehicle_data['url'],
                 vehicle_data['title'],
@@ -127,6 +157,8 @@ class Database:
                 vehicle_data['packs'],
                 vehicle_data['location'],
                 vehicle_data.get('photo_url'),
+                vehicle_data.get('latitude'),
+                vehicle_data.get('longitude'),
                 now,
                 now
             ))
@@ -165,6 +197,8 @@ class Database:
                     packs = ?,
                     location = ?,
                     photo_url = ?,
+                    latitude = ?,
+                    longitude = ?,
                     last_seen = ?,
                     is_available = 1
                 WHERE url = ?
@@ -178,6 +212,8 @@ class Database:
                 vehicle_data['packs'],
                 vehicle_data['location'],
                 vehicle_data.get('photo_url'),
+                vehicle_data.get('latitude'),
+                vehicle_data.get('longitude'),
                 now,
                 vehicle_data['url']
             ))
@@ -212,7 +248,7 @@ class Database:
             SELECT 
                 url, title, current_price, original_price, trim, charge_type,
                 exterior_color, seat_type, packs, location, photo_url,
-                first_seen, last_seen, is_available
+                latitude, longitude, first_seen, last_seen, is_available
             FROM vehicles
             ORDER BY last_seen DESC, current_price ASC
         """)
@@ -236,6 +272,8 @@ class Database:
                 packs=row['packs'],
                 location=row['location'],
                 photo_url=row['photo_url'],
+                latitude=row['latitude'],
+                longitude=row['longitude'],
                 first_seen=row['first_seen'],
                 last_seen=row['last_seen'],
                 is_new=is_new and row['is_available'] == 1

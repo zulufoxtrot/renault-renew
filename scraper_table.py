@@ -36,6 +36,8 @@ class Vehicle:
     location: str
     url: str
     photo_url: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 
 class RenaultScraper:
@@ -147,6 +149,23 @@ class RenaultScraper:
 
         return None
 
+    def extract_coordinates(self, soup: BeautifulSoup) -> tuple[Optional[float], Optional[float]]:
+        """Extract GPS coordinates from Google Maps link"""
+        # Look for Google Maps link with coordinates
+        # Example: https://www.google.com/maps/dir//44.3600593,2.0149468
+        maps_link = soup.find('a', href=re.compile(r'google\.com/maps/dir/', re.I))
+
+        if maps_link:
+            href = maps_link.get('href', '')
+            # Extract coordinates from URL like /maps/dir//44.3600593,2.0149468
+            match = re.search(r'/maps/dir//([-+]?\d+\.\d+),([-+]?\d+\.\d+)', href)
+            if match:
+                latitude = float(match.group(1))
+                longitude = float(match.group(2))
+                return latitude, longitude
+
+        return None, None
+
     def parse_detail_page(self, url: str) -> Optional[Vehicle]:
         soup = self.get_soup(url)
         if not soup: return None
@@ -180,6 +199,7 @@ class RenaultScraper:
         location = self.extract_location(soup)
         packs = self.extract_packs(soup)
         photo_url = self.extract_photo_url(soup)
+        latitude, longitude = self.extract_coordinates(soup)
 
         # SEAT TYPE DETECTION
         seat_type = "unknown"
@@ -200,7 +220,9 @@ class RenaultScraper:
             packs=packs,
             url=url,
             seat_type=seat_type,
-            photo_url=photo_url
+            photo_url=photo_url,
+            latitude=latitude,
+            longitude=longitude
         )
 
     def run(self):
@@ -258,8 +280,9 @@ class RenaultScraper:
                 vehicle = self.parse_detail_page(url)
                 if vehicle:
                     photo_indicator = "📷" if vehicle.photo_url else "📷❌"
+                    coord_indicator = "🗺️" if vehicle.latitude and vehicle.longitude else "🗺️❌"
                     print(
-                        f"    ✅ {photo_indicator} MATCH: {vehicle.price}€ | {vehicle.exterior_color} | {vehicle.location}")
+                        f"    ✅ {photo_indicator} {coord_indicator} MATCH: {vehicle.price}€ | {vehicle.exterior_color} | {vehicle.location}")
                     self.vehicles.append(vehicle)
 
                     # Add to database if enabled
