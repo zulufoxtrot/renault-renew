@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Renault Mégane E-Tech - Live Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         * {
             margin: 0;
@@ -138,6 +140,28 @@
             }
         }
         
+        .content-wrapper {
+            display: flex;
+            height: calc(100vh - 300px);
+            min-height: 600px;
+        }
+
+        .map-section {
+            flex: 0 0 40%;
+            border-right: 2px solid #dee2e6;
+            position: relative;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .table-section {
+            flex: 1;
+            overflow: auto;
+        }
+
         .stats {
             display: flex;
             justify-content: space-around;
@@ -212,6 +236,7 @@
         .table-container {
             overflow-x: auto;
             padding: 20px;
+            height: 100%;
         }
         
         table {
@@ -256,6 +281,15 @@
             background-color: #f8f9fa !important;
         }
         
+        tr.highlighted {
+            background-color: #fff3cd !important;
+            border-left: 4px solid #ffc107;
+        }
+
+        tr.highlighted td {
+            font-weight: 600;
+        }
+
         .photo-cell {
             width: 150px;
             text-align: center;
@@ -383,6 +417,51 @@
             font-size: 0.85em;
             opacity: 0.8;
         }
+
+        .leaflet-popup-content {
+            margin: 8px;
+            line-height: 1.4;
+        }
+
+        .popup-content {
+            min-width: 200px;
+        }
+
+        .popup-content h3 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+            font-size: 1em;
+        }
+
+        .popup-content .price {
+            font-size: 1.2em;
+            color: #667eea;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .popup-content .detail {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin: 3px 0;
+        }
+
+        .popup-content .view-btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 12px;
+            background: #667eea;
+            color: white;
+            border-radius: 4px;
+            font-size: 0.85em;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .popup-content .view-btn:hover {
+            background: #5568d3;
+            text-decoration: none;
+        }
     </style>
 </head>
 <body>
@@ -427,8 +506,14 @@
                 <div class="label">Price Tracked</div>
             </div>
         </div>
-        
-        <div class="table-container">
+
+        <div class="content-wrapper">
+            <div class="map-section">
+                <div id="map"></div>
+            </div>
+
+            <div class="table-section">
+                <div class="table-container">
             <table id="vehicleTable">
                 <thead>
                     <tr>
@@ -454,6 +539,8 @@
                     </tr>
                 </tbody>
             </table>
+                </div>
+            </div>
         </div>
         
         <div class="footer">
@@ -465,7 +552,10 @@
         let currentSort = { column: -1, ascending: true };
         let vehiclesData = [];
         let autoRefreshInterval = null;
-        
+        let map = null;
+        let markers = {};
+        let markerClusterData = {};
+
         // Color mapping
         const colorMap = {
             'blanc': '#FFFFFF',
@@ -538,6 +628,9 @@
         function renderVehicles(vehicles, stats) {
             vehiclesData = vehicles;
             
+            // Update map
+            updateMap(vehicles);
+
             // Update stats
             document.getElementById('statTotal').textContent = stats.total_vehicles;
             document.getElementById('statAvailable').textContent = stats.available_vehicles;
@@ -578,7 +671,7 @@
                 const colorHex = getColorHex(v.exterior_color);
                 
                 return `
-                    <tr ${rowStyle}>
+                    <tr ${rowStyle} data-vehicle-url="${v.url}" onclick="highlightVehicle('${v.url}')">
                         <td class="photo-cell">${photoHtml}${newBadge}</td>
                         <td class="price-cell" data-sort="${v.price}"><strong>${v.price.toLocaleString()}€</strong>${priceChange}</td>
                         <td data-sort="${v.original_price}">${v.original_price.toLocaleString()}€</td>
@@ -756,8 +849,183 @@
             autoRefreshInterval = setInterval(loadVehicles, 30000);
         }
         
+        // Geocoding cache for French cities
+        const cityCoordinates = {
+            'paris': [48.8566, 2.3522],
+            'marseille': [43.2965, 5.3698],
+            'lyon': [45.7640, 4.8357],
+            'toulouse': [43.6047, 1.4442],
+            'nice': [43.7102, 7.2620],
+            'nantes': [47.2184, -1.5536],
+            'strasbourg': [48.5734, 7.7521],
+            'montpellier': [43.6108, 3.8767],
+            'bordeaux': [44.8378, -0.5792],
+            'lille': [50.6292, 3.0573],
+            'rennes': [48.1173, -1.6778],
+            'reims': [49.2583, 4.0317],
+            'saint-étienne': [45.4397, 4.3872],
+            'toulon': [43.1242, 5.9280],
+            'grenoble': [45.1885, 5.7245],
+            'dijon': [47.3220, 5.0415],
+            'angers': [47.4784, -0.5632],
+            'nîmes': [43.8367, 4.3601],
+            'villeurbanne': [45.7660, 4.8795],
+            'le havre': [49.4944, 0.1079],
+            'clermont-ferrand': [45.7772, 3.0870],
+            'le mans': [48.0077, 0.1984],
+            'aix-en-provence': [43.5297, 5.4474],
+            'brest': [48.3904, -4.4861],
+            'tours': [47.3941, 0.6848],
+            'amiens': [49.8941, 2.2958],
+            'limoges': [45.8336, 1.2611],
+            'annecy': [45.8992, 6.1294],
+            'perpignan': [42.6886, 2.8948],
+            'besançon': [47.2380, 6.0243],
+            'orléans': [47.9029, 1.9093],
+            'metz': [49.1193, 6.1757],
+            'rouen': [49.4432, 1.0993],
+            'mulhouse': [47.7508, 7.3359],
+            'caen': [49.1829, -0.3707],
+            'nancy': [48.6921, 6.1844],
+            'argenteuil': [48.9474, 2.2472],
+            'montreuil': [48.8634, 2.4432],
+            'saint-denis': [48.9362, 2.3574],
+        };
+
+        function getCityCoordinates(location) {
+            const cityName = location.toLowerCase().trim();
+
+            // Direct match
+            if (cityCoordinates[cityName]) {
+                return cityCoordinates[cityName];
+            }
+
+            // Partial match
+            for (const [city, coords] of Object.entries(cityCoordinates)) {
+                if (cityName.includes(city) || city.includes(cityName)) {
+                    return coords;
+                }
+            }
+
+            // Default to center of France if not found
+            return [46.2276, 2.2137];
+        }
+
+        function initMap() {
+            // Initialize map centered on France
+            map = L.map('map').setView([46.8, 2.5], 6);
+
+            // Add OpenStreetMap tiles
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        function updateMap(vehicles) {
+            if (!map) return;
+
+            // Clear existing markers
+            Object.values(markers).forEach(marker => marker.remove());
+            markers = {};
+            markerClusterData = {};
+
+            // Group vehicles by location
+            vehicles.forEach(vehicle => {
+                const coords = getCityCoordinates(vehicle.location);
+                const key = coords.join(',');
+
+                if (!markerClusterData[key]) {
+                    markerClusterData[key] = {
+                        coords: coords,
+                        vehicles: [],
+                        location: vehicle.location
+                    };
+                }
+                markerClusterData[key].vehicles.push(vehicle);
+            });
+
+            // Create markers for each location
+            Object.entries(markerClusterData).forEach(([key, data]) => {
+                const count = data.vehicles.length;
+                const vehicle = data.vehicles[0]; // Representative vehicle
+
+                // Create custom icon with count
+                const iconHtml = count > 1
+                    ? `<div style="background-color: #667eea; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${count}</div>`
+                    : `<div style="background-color: #28a745; color: white; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: bold; border: 3px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">1</div>`;
+
+                const icon = L.divIcon({
+                    html: iconHtml,
+                    className: 'custom-marker',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 16]
+                });
+
+                const marker = L.marker(data.coords, { icon: icon }).addTo(map);
+
+                // Create popup content
+                let popupContent = `<div class="popup-content">`;
+                popupContent += `<h3>${data.location} (${count} vehicle${count > 1 ? 's' : ''})</h3>`;
+
+                data.vehicles.slice(0, 3).forEach(v => {
+                    const priceStr = v.price.toLocaleString();
+                    popupContent += `
+                        <div style="border-top: 1px solid #ddd; padding-top: 5px; margin-top: 5px;">
+                            <div class="price">${priceStr}€</div>
+                            <div class="detail">${v.exterior_color} | ${v.seat_type}</div>
+                            <div class="detail">${v.packs}</div>
+                            <a href="javascript:void(0)" onclick="highlightVehicle('${v.url}')" class="view-btn">View in Table</a>
+                        </div>
+                    `;
+                });
+
+                if (count > 3) {
+                    popupContent += `<div style="margin-top: 8px; color: #6c757d; font-size: 0.85em;">+ ${count - 3} more...</div>`;
+                }
+
+                popupContent += `</div>`;
+
+                marker.bindPopup(popupContent, { maxWidth: 300 });
+
+                // Store marker references
+                data.vehicles.forEach(v => {
+                    markers[v.url] = marker;
+                });
+            });
+        }
+
+        function highlightVehicle(vehicleUrl) {
+            // Remove previous highlights
+            document.querySelectorAll('tr.highlighted').forEach(tr => {
+                tr.classList.remove('highlighted');
+            });
+
+            // Highlight the row
+            const row = document.querySelector(`tr[data-vehicle-url="${vehicleUrl}"]`);
+            if (row) {
+                row.classList.add('highlighted');
+
+                // Scroll to the row
+                const tableSection = document.querySelector('.table-section');
+                const rowTop = row.offsetTop;
+                const tableSectionTop = tableSection.scrollTop;
+                const tableSectionHeight = tableSection.clientHeight;
+
+                if (rowTop < tableSectionTop || rowTop > tableSectionTop + tableSectionHeight) {
+                    tableSection.scrollTop = rowTop - 100;
+                }
+
+                // Open marker popup if exists
+                if (markers[vehicleUrl]) {
+                    markers[vehicleUrl].openPopup();
+                }
+            }
+        }
+
         // Initial load
         window.addEventListener('DOMContentLoaded', () => {
+            initMap();
             loadVehicles();
             startAutoRefresh();
             
