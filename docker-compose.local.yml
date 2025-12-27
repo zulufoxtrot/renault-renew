@@ -13,10 +13,8 @@ services:
     volumes:
       # Mount output directory to persist CSV files and reports
       - ./output:/app/output
-      # Mount database file to persist data
+      # Mount database directory to persist data
       - ./data:/app/data
-      # Mount database in app root for Flask access
-      - ./renault_vehicles.db:/app/renault_vehicles.db
     environment:
       - PYTHONUNBUFFERED=1
       - PORT=5000

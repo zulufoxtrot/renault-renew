@@ -18,6 +18,9 @@ from scraper_table import RenaultScraper
 app = Flask(__name__)
 CORS(app)
 
+# Database path configuration
+DB_PATH = '/app/data/renault_vehicles.db' if os.path.exists('/app/data') else 'renault_vehicles.db'
+
 # Global state
 scraper_state = {
     'is_running': False,
@@ -76,7 +79,7 @@ def index():
 def get_vehicles():
     """Get all vehicles from database"""
     try:
-        db = Database()
+        db = Database(DB_PATH)
         vehicles = db.get_all_vehicles()
         stats = db.get_statistics()
         db.close()
@@ -102,7 +105,7 @@ def get_vehicles():
             }
             
             # Get price history
-            db2 = Database()
+            db2 = Database(DB_PATH)
             price_history = db2.get_price_history(v.url)
             db2.close()
             vehicle_dict['price_history'] = price_history
@@ -163,7 +166,7 @@ def get_status():
 def get_stats():
     """Get database statistics"""
     try:
-        db = Database()
+        db = Database(DB_PATH)
         stats = db.get_statistics()
         db.close()
         
@@ -179,9 +182,9 @@ def get_stats():
 
 
 if __name__ == '__main__':
-    # Initialize database on startup (use /app/data directory if available)
-    db_path = '/app/data/renault_vehicles.db' if os.path.exists('/app/data') else 'renault_vehicles.db'
-    db = Database(db_path)
+    # Initialize database on startup
+    print(f"📁 Using database path: {DB_PATH}")
+    db = Database(DB_PATH)
     db.close()
     
     # Run Flask app

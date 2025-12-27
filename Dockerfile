@@ -19,8 +19,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY *.py .
 COPY templates/ templates/
 
-# Create directory for output files and data
-RUN mkdir -p /app/output /app/data
+# Create directory for output files and data with proper permissions
+RUN mkdir -p /app/output /app/data && \
+    chmod -R 777 /app/data /app/output
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
