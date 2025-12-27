@@ -39,7 +39,7 @@ class Vehicle:
 
 
 class RenaultScraper:
-    def __init__(self, use_database: bool = True):
+    def __init__(self, use_database: bool = True, db_path: str = None):
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -49,7 +49,10 @@ class RenaultScraper:
         self.base_url = "https://fr.renew.auto"
         self.vehicles = []
         self.use_database = use_database
-        self.db = Database() if use_database else None
+        # Use provided db_path or default
+        if db_path is None:
+            db_path = '/app/data/renault_vehicles.db' if os.path.exists('/app/data') else 'renault_vehicles.db'
+        self.db = Database(db_path) if use_database else None
 
     def get_soup(self, url: str) -> Optional[BeautifulSoup]:
         try:

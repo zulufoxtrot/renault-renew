@@ -676,8 +676,10 @@
                             showMessage('Scraping failed: ' + data.error, 'error');
                         } else {
                             showMessage('✅ Scraping completed successfully! Data updated.', 'success');
-                            // Reload vehicles
-                            await loadVehicles();
+                            // Reload vehicles after a short delay to ensure DB is properly closed
+                            setTimeout(async () => {
+                                await loadVehicles();
+                            }, 500);
                         }
                     }
                 } catch (error) {

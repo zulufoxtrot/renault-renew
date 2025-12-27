@@ -47,8 +47,8 @@ def run_scraper_background():
     try:
         # Update status
         scraper_state['status_message'] = 'Initializing...'
-        scraper = RenaultScraper(use_database=True)
-        
+        scraper = RenaultScraper(use_database=True, db_path=DB_PATH)
+
         scraper_state['status_message'] = 'Scraping vehicle listings...'
         scraper_state['progress'] = 10
         
