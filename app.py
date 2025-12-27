@@ -27,9 +27,26 @@ scraper_state = {
     'progress': 0,
     'status_message': 'Ready',
     'last_run': None,
-    'error': None
+    'error': None,
+    'pages_processed': 0,
+    'ads_processed': 0,
+    'ads_added': 0
 }
 scraper_lock = Lock()
+
+
+def progress_callback(progress_data):
+    """Callback to update progress from scraper"""
+    global scraper_state
+    scraper_state['pages_processed'] = progress_data.get('pages_processed', 0)
+    scraper_state['ads_processed'] = progress_data.get('ads_processed', 0)
+    scraper_state['ads_added'] = progress_data.get('ads_added', 0)
+
+    # Update status message with progress details
+    pages = progress_data.get('pages_processed', 0)
+    ads = progress_data.get('ads_processed', 0)
+    added = progress_data.get('ads_added', 0)
+    scraper_state['status_message'] = f'Scraping... Page {pages} | Ads: {ads} | New: {added}'
 
 
 def run_scraper_background():
@@ -43,11 +60,14 @@ def run_scraper_background():
         scraper_state['progress'] = 0
         scraper_state['status_message'] = 'Starting scraper...'
         scraper_state['error'] = None
-    
+        scraper_state['pages_processed'] = 0
+        scraper_state['ads_processed'] = 0
+        scraper_state['ads_added'] = 0
+
     try:
         # Update status
         scraper_state['status_message'] = 'Initializing...'
-        scraper = RenaultScraper(use_database=True, db_path=DB_PATH)
+        scraper = RenaultScraper(use_database=True, db_path=DB_PATH, progress_callback=progress_callback)
 
         scraper_state['status_message'] = 'Scraping vehicle listings...'
         scraper_state['progress'] = 10
@@ -56,7 +76,8 @@ def run_scraper_background():
         scraper.run()
         
         scraper_state['progress'] = 100
-        scraper_state['status_message'] = 'Scraping completed successfully!'
+        scraper_state[
+            'status_message'] = f'Completed! Pages: {scraper_state["pages_processed"]} | Ads: {scraper_state["ads_processed"]} | New: {scraper_state["ads_added"]}'
         scraper_state['last_run'] = datetime.now().isoformat()
         
     except Exception as e:
@@ -160,7 +181,10 @@ def get_status():
         'progress': scraper_state['progress'],
         'status_message': scraper_state['status_message'],
         'last_run': scraper_state['last_run'],
-        'error': scraper_state['error']
+        'error': scraper_state['error'],
+        'pages_processed': scraper_state['pages_processed'],
+        'ads_processed': scraper_state['ads_processed'],
+        'ads_added': scraper_state['ads_added']
     })
 
 

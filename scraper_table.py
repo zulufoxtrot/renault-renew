@@ -41,7 +41,7 @@ class Vehicle:
 
 
 class RenaultScraper:
-    def __init__(self, use_database: bool = True, db_path: str = None):
+    def __init__(self, use_database: bool = True, db_path: str = None, progress_callback=None):
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -55,6 +55,12 @@ class RenaultScraper:
         if db_path is None:
             db_path = '/app/data/renault_vehicles.db' if os.path.exists('/app/data') else 'renault_vehicles.db'
         self.db = Database(db_path) if use_database else None
+        self.progress_callback = progress_callback
+
+        # Progress tracking
+        self.pages_processed = 0
+        self.ads_processed = 0
+        self.ads_added = 0
 
     def get_soup(self, url: str) -> Optional[BeautifulSoup]:
         try:
@@ -153,16 +159,50 @@ class RenaultScraper:
         """Extract GPS coordinates from Google Maps link"""
         # Look for Google Maps link with coordinates
         # Example: https://www.google.com/maps/dir//44.3600593,2.0149468
-        maps_link = soup.find('a', href=re.compile(r'google\.com/maps/dir/', re.I))
+
+        # Method 1: Find by href pattern
+        maps_link = soup.find('a', href=re.compile(r'google\.com/maps', re.I))
 
         if maps_link:
             href = maps_link.get('href', '')
-            # Extract coordinates from URL like /maps/dir//44.3600593,2.0149468
-            match = re.search(r'/maps/dir//([-+]?\d+\.\d+),([-+]?\d+\.\d+)', href)
-            if match:
-                latitude = float(match.group(1))
-                longitude = float(match.group(2))
-                return latitude, longitude
+            # Try multiple patterns
+            patterns = [
+                r'/maps/dir//([-+]?\d+\.\d+),([-+]?\d+\.\d+)',  # /maps/dir//lat,lon
+                r'@([-+]?\d+\.\d+),([-+]?\d+\.\d+)',  # @lat,lon
+                r'q=([-+]?\d+\.\d+),([-+]?\d+\.\d+)',  # q=lat,lon
+            ]
+
+            for pattern in patterns:
+                match = re.search(pattern, href)
+                if match:
+                    latitude = float(match.group(1))
+                    longitude = float(match.group(2))
+                    return latitude, longitude
+
+        # Method 2: Search all links containing 'maps' or 'itinéraire'
+        all_links = soup.find_all('a', href=True)
+        for link in all_links:
+            href = link.get('href', '')
+            text = link.get_text(strip=True).lower()
+
+            # Look for maps links or direction links
+            if 'google.com/maps' in href or ('maps' in href and ('itinéraire' in text or 'direction' in text)):
+                for pattern in [
+                    r'/maps/dir//([-+]?\d+\.\d+),([-+]?\d+\.\d+)',
+                    r'@([-+]?\d+\.\d+),([-+]?\d+\.\d+)',
+                    r'q=([-+]?\d+\.\d+),([-+]?\d+\.\d+)',
+                    r'([-+]?\d+\.\d+),([-+]?\d+\.\d+)',  # Just lat,lon anywhere in URL
+                ]:
+                    match = re.search(pattern, href)
+                    if match:
+                        try:
+                            latitude = float(match.group(1))
+                            longitude = float(match.group(2))
+                            # Validate coordinates are reasonable (France roughly)
+                            if 41 <= latitude <= 51 and -5 <= longitude <= 10:
+                                return latitude, longitude
+                        except (ValueError, IndexError):
+                            continue
 
         return None, None
 
@@ -201,6 +241,15 @@ class RenaultScraper:
         photo_url = self.extract_photo_url(soup)
         latitude, longitude = self.extract_coordinates(soup)
 
+        # Debug: print if coordinates not found
+        if latitude is None or longitude is None:
+            # Check if there's a maps link we're missing
+            maps_links = soup.find_all('a', href=re.compile(r'maps', re.I))
+            if maps_links:
+                print(f"    ⚠️  No coordinates extracted but found {len(maps_links)} maps link(s)")
+                for ml in maps_links[:2]:  # Show first 2
+                    print(f"         Link: {ml.get('href', '')[:100]}...")
+
         # SEAT TYPE DETECTION
         seat_type = "unknown"
         if "alcantara" in full_text or "tissu" in full_text:
@@ -225,6 +274,15 @@ class RenaultScraper:
             longitude=longitude
         )
 
+    def _update_progress(self):
+        """Update progress via callback if available"""
+        if self.progress_callback:
+            self.progress_callback({
+                'pages_processed': self.pages_processed,
+                'ads_processed': self.ads_processed,
+                'ads_added': self.ads_added
+            })
+
     def run(self):
         start_url = (
             "https://fr.renew.auto/achat-vehicules-occasions.html?prices.customerDisplayPrice=19000-25000&query=renault%20megane%20e-tech%20electrique&finishing.label.raw=Iconic"
@@ -237,6 +295,8 @@ class RenaultScraper:
             print(f"   Database: ENABLED (tracking price history)")
         print()
 
+        self._update_progress()
+
         for page in range(1, 20):
             print(f"\n--- Page {page} ---")
             separator = "&" if "?" in start_url else "?"
@@ -244,6 +304,9 @@ class RenaultScraper:
 
             soup = self.get_soup(current_url)
             if not soup: break
+
+            self.pages_processed = page
+            self._update_progress()
 
             # --- ROBUST LINK SEARCH ---
             links = soup.find_all('a', href=re.compile(r'(detail|product)', re.IGNORECASE))
@@ -277,6 +340,9 @@ class RenaultScraper:
             print(f"    Found {len(unique_urls)} candidates. Checking details...")
 
             for url in unique_urls:
+                self.ads_processed += 1
+                self._update_progress()
+
                 vehicle = self.parse_detail_page(url)
                 if vehicle:
                     photo_indicator = "📷" if vehicle.photo_url else "📷❌"
@@ -289,6 +355,9 @@ class RenaultScraper:
                     if self.use_database and self.db:
                         vehicle_dict = asdict(vehicle)
                         is_new, price_changed = self.db.add_or_update_vehicle(vehicle_dict)
+                        if is_new:
+                            self.ads_added += 1
+                            self._update_progress()
                         if price_changed:
                             print(f"         💰 Price changed!")
 

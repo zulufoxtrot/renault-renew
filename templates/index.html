@@ -211,6 +211,7 @@
             border-radius: 15px;
             text-align: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            min-width: 400px;
         }
         
         .big-loader {
@@ -234,6 +235,33 @@
             color: #6c757d;
         }
         
+        .progress-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .progress-stat {
+            text-align: center;
+        }
+
+        .progress-stat .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+        }
+
+        .progress-stat .label {
+            font-size: 0.85em;
+            color: #6c757d;
+            margin-top: 5px;
+            display: block;
+        }
+
         .table-container {
             overflow-x: auto;
             padding: 20px;
@@ -481,6 +509,20 @@
             <div class="big-loader"></div>
             <div class="loading-text" id="loadingText">Scraping vehicles...</div>
             <div class="loading-subtext">This may take a few minutes</div>
+            <div class="progress-stats">
+                <div class="progress-stat">
+                    <span class="number" id="pagesProcessed">0</span>
+                    <span class="label">Pages Processed</span>
+                </div>
+                <div class="progress-stat">
+                    <span class="number" id="adsProcessed">0</span>
+                    <span class="label">Ads Processed</span>
+                </div>
+                <div class="progress-stat">
+                    <span class="number" id="adsAdded">0</span>
+                    <span class="label">Added as New</span>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -760,7 +802,10 @@
             const btn = document.getElementById('refreshBtn');
             const btnText = document.getElementById('btnText');
             const btnLoader = document.getElementById('btnLoader');
-            
+            const pagesProcessed = document.getElementById('pagesProcessed');
+            const adsProcessed = document.getElementById('adsProcessed');
+            const adsAdded = document.getElementById('adsAdded');
+
             const checkStatus = async () => {
                 try {
                     const response = await fetch('/api/status');
@@ -768,6 +813,9 @@
                     
                     if (data.is_running) {
                         loadingText.textContent = data.status_message;
+                        pagesProcessed.textContent = data.pages_processed || 0;
+                        adsProcessed.textContent = data.ads_processed || 0;
+                        adsAdded.textContent = data.ads_added || 0;
                         setTimeout(checkStatus, 1000);
                     } else {
                         // Scraping complete
@@ -776,6 +824,11 @@
                         btnText.textContent = '🔄 Refresh Data';
                         btnLoader.classList.remove('active');
                         
+                        // Reset counters
+                        pagesProcessed.textContent = '0';
+                        adsProcessed.textContent = '0';
+                        adsAdded.textContent = '0';
+
                         if (data.error) {
                             showMessage('Scraping failed: ' + data.error, 'error');
                         } else {
