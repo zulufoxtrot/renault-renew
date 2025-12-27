@@ -179,8 +179,9 @@ def get_stats():
 
 
 if __name__ == '__main__':
-    # Initialize database on startup
-    db = Database()
+    # Initialize database on startup (use /app/data directory if available)
+    db_path = '/app/data/renault_vehicles.db' if os.path.exists('/app/data') else 'renault_vehicles.db'
+    db = Database(db_path)
     db.close()
     
     # Run Flask app
