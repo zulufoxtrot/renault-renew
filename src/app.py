@@ -86,6 +86,7 @@ def run_scraper_background():
         scraper_state['error'] = str(e)
         scraper_state['status_message'] = f'Error: {str(e)}'
         print(f"❌ Scraper error: {e}")
+        raise e
     
     finally:
         time.sleep(2)  # Keep success message visible
@@ -126,7 +127,8 @@ def get_vehicles():
                 'longitude': v.longitude,
                 'first_seen': v.first_seen,
                 'last_seen': v.last_seen,
-                'is_new': v.is_new
+                'is_new': v.is_new,
+                'is_sold': v.is_sold
             }
             
             # Get price history

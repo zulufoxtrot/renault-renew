@@ -29,6 +29,7 @@ class VehicleRecord:
     last_seen: Optional[str] = None
     original_price: Optional[int] = None
     is_new: bool = False
+    is_sold: bool = False
 
 
 class Database:
@@ -49,13 +50,13 @@ class Database:
         self.conn.row_factory = sqlite3.Row
         cursor = self.conn.cursor()
 
-        # Vehicles table - main vehicle data
+        # Create vehicles table with is_sold column
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS vehicles (
                 url TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 current_price INTEGER NOT NULL,
-                original_price INTEGER NOT NULL,
+                original_price INTEGER,
                 trim TEXT,
                 charge_type TEXT,
                 exterior_color TEXT,
@@ -67,14 +68,11 @@ class Database:
                 longitude REAL,
                 first_seen TIMESTAMP NOT NULL,
                 last_seen TIMESTAMP NOT NULL,
-                is_available BOOLEAN DEFAULT 1
+                is_available BOOLEAN NOT NULL DEFAULT 1,
+                is_sold BOOLEAN NOT NULL DEFAULT 0
             )
         """)
 
-        # Run migrations for existing databases
-        self._run_migrations(cursor)
-
-        # Price history table - track price changes
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS price_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,40 +85,16 @@ class Database:
 
         # Create indexes for faster queries
         cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_price_history_url 
+            CREATE INDEX IF NOT EXISTS idx_price_history_url
             ON price_history(vehicle_url)
         """)
-
         cursor.execute("""
-            CREATE INDEX IF NOT EXISTS idx_price_history_date 
+            CREATE INDEX IF NOT EXISTS idx_price_history_date
             ON price_history(scraped_at)
         """)
 
         self.conn.commit()
         print(f"✅ Database initialized: {self.db_path}")
-
-    def _run_migrations(self, cursor):
-        """Run database migrations for schema updates"""
-        # Check current schema
-        cursor.execute("PRAGMA table_info(vehicles)")
-        columns = {column[1] for column in cursor.fetchall()}
-
-        migrations_applied = False
-
-        # Migration 1: Add latitude and longitude columns
-        if 'latitude' not in columns:
-            print("   🔄 Migration: Adding 'latitude' column...")
-            cursor.execute("ALTER TABLE vehicles ADD COLUMN latitude REAL")
-            migrations_applied = True
-
-        if 'longitude' not in columns:
-            print("   🔄 Migration: Adding 'longitude' column...")
-            cursor.execute("ALTER TABLE vehicles ADD COLUMN longitude REAL")
-            migrations_applied = True
-
-        if migrations_applied:
-            print("   ✅ Database migrations completed")
-            self.conn.commit()
 
     def add_or_update_vehicle(self, vehicle_data: Dict) -> Tuple[bool, bool]:
         """
@@ -144,8 +118,8 @@ class Database:
                 INSERT INTO vehicles (
                     url, title, current_price, original_price, trim, charge_type,
                     exterior_color, seat_type, packs, location, photo_url,
-                    latitude, longitude, first_seen, last_seen, is_available
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+                    latitude, longitude, first_seen, last_seen, is_available, is_sold
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 0)
             """, (
                 vehicle_data['url'],
                 vehicle_data['title'],
@@ -226,25 +200,27 @@ class Database:
         """Mark vehicles not in current scrape as unavailable"""
         cursor = self.conn.cursor()
 
-        if not current_urls:
-            return
-
-        placeholders = ','.join('?' * len(current_urls))
-        cursor.execute(f"""
-            UPDATE vehicles 
-            SET is_available = 0 
-            WHERE url NOT IN ({placeholders}) AND is_available = 1
-        """, current_urls)
-
-        unavailable_count = cursor.rowcount
-        if unavailable_count > 0:
-            print(f"   ⚠️  Marked {unavailable_count} vehicle(s) as unavailable")
+        if current_urls:
+            placeholders = ','.join('?' * len(current_urls))
+            cursor.execute(f"""
+                UPDATE vehicles
+                SET is_available = 0
+                WHERE url NOT IN ({placeholders})
+                AND is_available = 1
+            """, current_urls)
+        else:
+            cursor.execute("""
+                UPDATE vehicles
+                SET is_available = 0
+                WHERE is_available = 1
+            """)
 
         self.conn.commit()
 
     def get_all_vehicles(self) -> List[VehicleRecord]:
         """Get all vehicles with their data"""
         cursor = self.conn.cursor()
+
         cursor.execute("""
             SELECT 
                 url, title, current_price, original_price, trim, charge_type,
@@ -309,25 +285,35 @@ class Database:
         cursor.execute("SELECT COUNT(*) as count FROM vehicles WHERE is_available = 1")
         stats['available_vehicles'] = cursor.fetchone()['count']
 
+        # Sold vehicles
+        cursor.execute("SELECT COUNT(*) as count FROM vehicles WHERE is_sold = 1")
+        stats['sold_vehicles'] = cursor.fetchone()['count']
+
         # New vehicles (last 24h)
         cursor.execute("""
-            SELECT COUNT(*) as count FROM vehicles 
+            SELECT COUNT(*) as count FROM vehicles
             WHERE datetime(first_seen) > datetime('now', '-1 day')
-            AND is_available = 1
+            AND is_available = 1 AND is_sold = 0
         """)
         stats['new_vehicles_24h'] = cursor.fetchone()['count']
 
         # Price changes
         cursor.execute("""
-            SELECT COUNT(DISTINCT vehicle_url) as count 
+            SELECT COUNT(DISTINCT vehicle_url) as count
             FROM price_history
         """)
         stats['vehicles_with_price_history'] = cursor.fetchone()['count']
-
         return stats
 
     def close(self):
         """Close database connection"""
         if self.conn:
             self.conn.close()
-            print("✅ Database connection closed")
+
+    def __enter__(self):
+        """Context manager entry"""
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Context manager exit with proper cleanup"""
+        self.close()

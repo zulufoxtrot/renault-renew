@@ -15,7 +15,7 @@ from src import config
 
 
 def migrate_database(db_path=None):
-    """Add latitude and longitude columns if they don't exist"""
+    """Add latitude, longitude, and is_sold columns if they don't exist"""
 
     if db_path is None:
         db_path = config.DB_PATH
@@ -44,6 +44,11 @@ def migrate_database(db_path=None):
         if 'longitude' not in columns:
             print("   Adding 'longitude' column...")
             cursor.execute("ALTER TABLE vehicles ADD COLUMN longitude REAL")
+            needs_migration = True
+
+        if 'is_sold' not in columns:
+            print("   Adding 'is_sold' column...")
+            cursor.execute("ALTER TABLE vehicles ADD COLUMN is_sold BOOLEAN DEFAULT 0")
             needs_migration = True
 
         if needs_migration:

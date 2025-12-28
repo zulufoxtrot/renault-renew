@@ -37,7 +37,7 @@ CHARGE_FILTER = "Optimum Charge"
 # Scraper behavior
 MAX_PAGES = 20
 REQUEST_TIMEOUT = 15
-REQUEST_DELAY = 0.5  # seconds between requests
+REQUEST_DELAY = 0.1  # seconds between requests
 
 # User agent
 USER_AGENT = (

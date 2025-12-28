@@ -12,7 +12,12 @@ DB_PATH="${DB_PATH:-/app/data/renault_vehicles.db}"
 # Check if database exists
 if [ -f "$DB_PATH" ]; then
     echo "📊 Existing database found: $DB_PATH"
-    echo "🔄 Migrations will be applied automatically on startup"
+    echo "🔄 Running migrations..."
+    python scripts/migrate_db.py
+    if [ $? -ne 0 ]; then
+        echo "❌ Migration failed!"
+        exit 1
+    fi
 else
     echo "🆕 No existing database - will be created on first run"
 fi
