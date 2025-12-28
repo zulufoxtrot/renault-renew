@@ -4,18 +4,19 @@ services:
   scraper:
     # Build locally
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: docker/Dockerfile
 
     container_name: renault-scraper
     ports:
       - "5000:5000"
     volumes:
       # Mount output directory to persist CSV files and reports
-      - ./output:/app/output
+      - ../output:/app/output
       # Mount database directory to persist data
-      - ./data:/app/data
+      - ../data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
-      - PORT=5000
+      - FLASK_PORT=5000
+      - LOG_LEVEL=INFO
     restart: unless-stopped

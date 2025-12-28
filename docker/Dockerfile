@@ -16,20 +16,21 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY *.py .
+COPY src/ src/
 COPY templates/ templates/
-COPY entrypoint.sh .
+COPY docker/entrypoint.sh .
 
 # Make entrypoint executable
 RUN chmod +x entrypoint.sh
 
-# Create directory for output files and data with proper permissions
+# Create directory for output files and data
 RUN mkdir -p /app/output /app/data && \
     chmod -R 777 /app/data /app/output
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
-ENV PORT=5000
+ENV FLASK_PORT=5000
+ENV PYTHONPATH=/app
 
 # Expose port
 EXPOSE 5000

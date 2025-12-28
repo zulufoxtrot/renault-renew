@@ -32,26 +32,45 @@
         .header {
             background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
             color: white;
-            padding: 30px;
-            text-align: center;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             position: relative;
         }
         
+        .header-left {
+            text-align: left;
+            flex: 1;
+        }
+
         .header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
+            font-size: 1.2em;
+            margin-bottom: 0;
+            font-weight: 700;
+            display: inline;
+            margin-right: 10px;
         }
         
         .header .subtitle {
-            font-size: 1.1em;
+            font-size: 0.85em;
             opacity: 0.9;
+            display: inline;
         }
         
+        .header-line {
+            margin-bottom: 4px;
+        }
+
+        .last-updated {
+            margin-top: 4px;
+            font-size: 0.75em;
+            opacity: 0.8;
+        }
+
         .refresh-controls {
-            margin-top: 20px;
             display: flex;
             gap: 15px;
-            justify-content: center;
             align-items: center;
         }
         
@@ -525,16 +544,20 @@
 
     <div class="container">
         <div class="header">
-            <h1>🚗 Renault Mégane E-Tech</h1>
-            <div class="subtitle">Iconic | Optimum Charge | €19k-25k</div>
-            <div class="subtitle last-updated" id="lastUpdated">Loading...</div>
-            
+            <div class="header-left">
+                <div class="header-line">
+                    <h1>🚗 Car Finder</h1>
+                    <span class="subtitle">Renault Mégane E-Tech | Iconic | Optimum Charge | €19k-25k</span>
+                </div>
+                <div class="last-updated" id="lastUpdated">Loading...</div>
+            </div>
+
             <div class="refresh-controls">
+                <div class="status-message" id="statusMessage"></div>
                 <button class="btn-refresh" id="refreshBtn" onclick="refreshData()">
                     <div class="loader" id="btnLoader"></div>
                     <span id="btnText">🔄 Refresh Data</span>
                 </button>
-                <div class="status-message" id="statusMessage"></div>
             </div>
         </div>
         
@@ -923,10 +946,11 @@
             // Initialize map centered on France
             map = L.map('map').setView([46.8, 2.5], 6);
 
-            // Add OpenStreetMap tiles
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
+            // Add dark theme CartoDB tiles
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>',
+                maxZoom: 19,
+                subdomains: 'abcd'
             }).addTo(map);
         }
 

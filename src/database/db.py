@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Database Manager for Renault Scraper
 Handles SQLite storage of vehicles and price history
@@ -33,6 +32,8 @@ class VehicleRecord:
 
 
 class Database:
+    """Database interface for vehicle storage"""
+
     def __init__(self, db_path: str = "renault_vehicles.db"):
         self.db_path = db_path
         # Ensure directory exists
@@ -131,7 +132,7 @@ class Database:
 
         # Check if vehicle exists
         cursor.execute("SELECT url, current_price, original_price FROM vehicles WHERE url = ?",
-                      (vehicle_data['url'],))
+                       (vehicle_data['url'],))
         existing = cursor.fetchone()
 
         is_new = existing is None

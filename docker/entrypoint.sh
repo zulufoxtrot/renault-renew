@@ -19,4 +19,4 @@ fi
 
 # Start the application
 echo "▶️  Starting Flask application..."
-exec python app.py
+exec python -m src.app

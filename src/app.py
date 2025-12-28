@@ -4,18 +4,20 @@ Flask API for Renault Scraper
 Provides web interface with real-time scraping
 """
 
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify
 from flask_cors import CORS
 from threading import Thread, Lock
 import time
 from datetime import datetime
-from typing import Optional
 import os
 
-from database import Database
-from scraper_table import RenaultScraper
+from src.database import Database
+from src.scraper import RenaultScraper
 
-app = Flask(__name__)
+# Get the absolute path to the templates folder
+template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'templates'))
+
+app = Flask(__name__, template_folder=template_dir)
 CORS(app)
 
 # Database path configuration

@@ -6,10 +6,19 @@ Adds latitude and longitude columns to existing databases
 
 import sqlite3
 import os
+import sys
+
+# Add parent directory to path
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from src import config
 
 
-def migrate_database(db_path='renault_vehicles.db'):
+def migrate_database(db_path=None):
     """Add latitude and longitude columns if they don't exist"""
+
+    if db_path is None:
+        db_path = config.DB_PATH
 
     if not os.path.exists(db_path):
         print(f"❌ Database not found: {db_path}")
@@ -53,12 +62,5 @@ def migrate_database(db_path='renault_vehicles.db'):
 
 
 if __name__ == "__main__":
-    # Migrate both possible database locations
-    paths = [
-        'renault_vehicles.db',
-        '/app/data/renault_vehicles.db'
-    ]
-
-    for path in paths:
-        if os.path.exists(path):
-            migrate_database(path)
+    success = migrate_database()
+    sys.exit(0 if success else 1)

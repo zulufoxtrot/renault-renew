@@ -16,5 +16,6 @@ services:
       - ./data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
-      - PORT=5000
+      - FLASK_PORT=5000
+      - LOG_LEVEL=INFO
     restart: unless-stopped
