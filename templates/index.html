@@ -211,7 +211,7 @@
             border-radius: 15px;
             text-align: center;
             box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-            min-width: 400px;
+            min-width: 350px;
         }
         
         .big-loader {
@@ -221,45 +221,43 @@
             width: 60px;
             height: 60px;
             animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
+            margin: 0 auto 25px;
         }
         
         .loading-text {
-            font-size: 1.2em;
+            font-size: 1.3em;
             color: #333;
-            margin-bottom: 10px;
+            font-weight: 600;
+            margin-bottom: 20px;
         }
         
-        .loading-subtext {
-            font-size: 0.9em;
+        .progress-info {
+            text-align: left;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.95em;
+        }
+
+        .progress-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .progress-line:last-child {
+            border-bottom: none;
+        }
+
+        .progress-line .label {
             color: #6c757d;
         }
-        
-        .progress-stats {
-            display: flex;
-            justify-content: space-around;
-            margin-top: 25px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
 
-        .progress-stat {
-            text-align: center;
-        }
-
-        .progress-stat .number {
-            font-size: 2em;
+        .progress-line .value {
             font-weight: bold;
             color: #667eea;
-            display: block;
-        }
-
-        .progress-stat .label {
-            font-size: 0.85em;
-            color: #6c757d;
-            margin-top: 5px;
-            display: block;
         }
 
         .table-container {
@@ -507,20 +505,19 @@
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-content">
             <div class="big-loader"></div>
-            <div class="loading-text" id="loadingText">Scraping vehicles...</div>
-            <div class="loading-subtext">This may take a few minutes</div>
-            <div class="progress-stats">
-                <div class="progress-stat">
-                    <span class="number" id="pagesProcessed">0</span>
-                    <span class="label">Pages Processed</span>
+            <div class="loading-text">Refreshing Data</div>
+            <div class="progress-info">
+                <div class="progress-line">
+                    <span class="label">Pages Processed:</span>
+                    <span class="value" id="pagesProcessed">0</span>
                 </div>
-                <div class="progress-stat">
-                    <span class="number" id="adsProcessed">0</span>
-                    <span class="label">Ads Processed</span>
+                <div class="progress-line">
+                    <span class="label">Ads Processed:</span>
+                    <span class="value" id="adsProcessed">0</span>
                 </div>
-                <div class="progress-stat">
-                    <span class="number" id="adsAdded">0</span>
-                    <span class="label">Added as New</span>
+                <div class="progress-line">
+                    <span class="label">New Vehicles Found:</span>
+                    <span class="value" id="adsAdded">0</span>
                 </div>
             </div>
         </div>
@@ -797,7 +794,6 @@
         }
         
         async function pollScraperStatus() {
-            const loadingText = document.getElementById('loadingText');
             const overlay = document.getElementById('loadingOverlay');
             const btn = document.getElementById('refreshBtn');
             const btnText = document.getElementById('btnText');
@@ -812,7 +808,6 @@
                     const data = await response.json();
                     
                     if (data.is_running) {
-                        loadingText.textContent = data.status_message;
                         pagesProcessed.textContent = data.pages_processed || 0;
                         adsProcessed.textContent = data.ads_processed || 0;
                         adsAdded.textContent = data.ads_added || 0;

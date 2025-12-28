@@ -1,0 +1,68 @@
+{
+  "models": [],
+  "customCommands": [
+    {
+      "name": "review-scraper",
+      "description": "Review scraper code for issues",
+      "prompt": "Review the scraper code in scraper_table.py. Check for: 1) Proper error handling, 2) Updated selectors, 3) Efficient waits. Reference @PROJECT_CONTEXT.md for architecture."
+    },
+    {
+      "name": "add-field",
+      "description": "Guide to add new scraped field",
+      "prompt": "I want to add a new field to the scraper. Follow the steps in @TASK_TEMPLATES.md under 'Adding a New Scraped Field'. Ask me what field I want to add."
+    },
+    {
+      "name": "debug-scraper",
+      "description": "Debug scraping issues",
+      "prompt": "Help me debug the scraper. Follow the checklist in @TASK_TEMPLATES.md under 'Debugging Scraper Issues'. First, let me know what errors I'm seeing."
+    }
+  ],
+  "contextProviders": [
+    {
+      "name": "file",
+      "params": {}
+    },
+    {
+      "name": "folder",
+      "params": {}
+    },
+    {
+      "name": "code",
+      "params": {}
+    },
+    {
+      "name": "docs",
+      "params": {}
+    },
+    {
+      "name": "diff",
+      "params": {}
+    },
+    {
+      "name": "open",
+      "params": {}
+    },
+    {
+      "name": "terminal",
+      "params": {}
+    }
+  ],
+  "slashCommands": [
+    {
+      "name": "edit",
+      "description": "Edit selected code"
+    },
+    {
+      "name": "comment",
+      "description": "Add comments to code"
+    },
+    {
+      "name": "share",
+      "description": "Share code context"
+    },
+    {
+      "name": "cmd",
+      "description": "Generate shell command"
+    }
+  ]
+}
